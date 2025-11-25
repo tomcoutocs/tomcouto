@@ -2,6 +2,18 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Setup
+
+1. Create a `.env.local` file in the root directory
+2. Add your Resend API key:
+   ```
+   RESEND_API_KEY=re_your_api_key_here
+   ```
+3. Get your API key from [Resend](https://resend.com/api-keys)
+4. Note: You'll need to verify a domain with Resend to send emails from your own domain. For testing, you can use `onboarding@resend.dev` (already configured in the code).
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash

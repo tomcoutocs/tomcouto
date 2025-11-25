@@ -1,14 +1,91 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Code, Database, Cloud, Smartphone, Globe, Github, Linkedin, Send } from "lucide-react";
+import { Mail, Code, Database, Cloud, Smartphone, Globe, Github, Linkedin, Send, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
 
 export default function Home() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"success" | "error" | null>(null);
+  const [submitMessage, setSubmitMessage] = useState("");
+  
+  const [repos, setRepos] = useState<any[]>([]);
+  const [reposLoading, setReposLoading] = useState(true);
+  const [reposError, setReposError] = useState(false);
+
+  useEffect(() => {
+    const fetchRepos = async () => {
+      try {
+        const response = await fetch("/api/github");
+        if (response.ok) {
+          const data = await response.json();
+          setRepos(data);
+        } else {
+          setReposError(true);
+        }
+      } catch (error) {
+        console.error("Error fetching repos:", error);
+        setReposError(true);
+      } finally {
+        setReposLoading(false);
+      }
+    };
+
+    fetchRepos();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+    setSubmitMessage("");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitStatus("success");
+        setSubmitMessage("Thank you! Your message has been sent successfully.");
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } else {
+        setSubmitStatus("error");
+        setSubmitMessage(data.error || "Failed to send message. Please try again.");
+      }
+    } catch (error) {
+      setSubmitStatus("error");
+      setSubmitMessage("An error occurred. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value,
+    });
+  };
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -188,136 +265,69 @@ export default function Home() {
       <section id="projects" className="container px-4 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Past Projects</h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Featured Projects</h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              A selection of projects I've worked on
+              A selection of my recent work and projects
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>E-Commerce Platform</CardTitle>
-                <CardDescription>
-                  Full-featured online store with payment integration
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="secondary">Next.js</Badge>
-                  <Badge variant="secondary">TypeScript</Badge>
-                  <Badge variant="secondary">Stripe</Badge>
-                  <Badge variant="secondary">PostgreSQL</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Built a scalable e-commerce solution with real-time inventory management,
-                  secure payment processing, and admin dashboard.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>SaaS Dashboard</CardTitle>
-                <CardDescription>
-                  Analytics and management platform for businesses
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="secondary">React</Badge>
-                  <Badge variant="secondary">Node.js</Badge>
-                  <Badge variant="secondary">MongoDB</Badge>
-                  <Badge variant="secondary">AWS</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Developed a comprehensive SaaS platform with user management,
-                  analytics, reporting, and subscription billing.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Mobile App</CardTitle>
-                <CardDescription>
-                  Cross-platform mobile application
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="secondary">React Native</Badge>
-                  <Badge variant="secondary">Firebase</Badge>
-                  <Badge variant="secondary">Redux</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Created a feature-rich mobile app with offline capabilities,
-                  push notifications, and real-time synchronization.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>API Gateway</CardTitle>
-                <CardDescription>
-                  Microservices architecture with API gateway
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="secondary">Express</Badge>
-                  <Badge variant="secondary">Docker</Badge>
-                  <Badge variant="secondary">Kubernetes</Badge>
-                  <Badge variant="secondary">GraphQL</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Designed and implemented a microservices architecture with
-                  API gateway, service discovery, and load balancing.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Analytics Platform</CardTitle>
-                <CardDescription>
-                  Real-time data processing and visualization
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="secondary">Python</Badge>
-                  <Badge variant="secondary">PostgreSQL</Badge>
-                  <Badge variant="secondary">D3.js</Badge>
-                  <Badge variant="secondary">Redis</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Built a data analytics platform with real-time processing,
-                  interactive dashboards, and automated reporting.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Legacy System Migration</CardTitle>
-                <CardDescription>
-                  Modernizing legacy applications
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="secondary">Migration</Badge>
-                  <Badge variant="secondary">Refactoring</Badge>
-                  <Badge variant="secondary">Modern Stack</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Successfully migrated legacy systems to modern technology stacks,
-                  improving performance and maintainability.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {reposLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : reposError ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                Unable to load projects. Please try again later.
+              </p>
+            </div>
+          ) : repos.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No projects found.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {repos.map((repo) => (
+                <Card key={repo.id} className="flex flex-col">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="flex items-center gap-2">
+                          <Github className="h-5 w-5" />
+                          {repo.name}
+                        </CardTitle>
+                        <CardDescription className="mt-2">
+                          {repo.description}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {repo.language && (
+                        <Badge variant="secondary">{repo.language}</Badge>
+                      )}
+                      {repo.topics.slice(0, 3).map((topic: string) => (
+                        <Badge key={topic} variant="secondary">
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="mt-auto pt-4">
+                      <a
+                        href={repo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-sm text-primary hover:underline"
+                      >
+                        View on GitHub
+                        <ExternalLink className="ml-1 h-3 w-3" />
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -340,24 +350,46 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium">
                     Name
                   </label>
-                  <Input id="name" placeholder="Your name" required />
+                  <Input
+                    id="name"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium">
                     Email
                   </label>
-                  <Input id="email" type="email" placeholder="your.email@example.com" required />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="subject" className="text-sm font-medium">
                     Subject
                   </label>
-                  <Input id="subject" placeholder="Project inquiry" required />
+                  <Input
+                    id="subject"
+                    placeholder="Project inquiry"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="message" className="text-sm font-medium">
@@ -367,12 +399,31 @@ export default function Home() {
                     id="message"
                     placeholder="Tell me about your project..."
                     className="min-h-[120px]"
+                    value={formData.message}
+                    onChange={handleChange}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
-                <Button type="submit" className="w-full" size="lg">
+                {submitStatus && (
+                  <div
+                    className={`flex items-center space-x-2 p-4 rounded-lg ${
+                      submitStatus === "success"
+                        ? "bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-100"
+                        : "bg-red-50 dark:bg-red-950 text-red-900 dark:text-red-100"
+                    }`}
+                  >
+                    {submitStatus === "success" ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5" />
+                    )}
+                    <p className="text-sm font-medium">{submitMessage}</p>
+                  </div>
+                )}
+                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                   <Send className="mr-2 h-4 w-4" />
-                  Send Message
+                  {isSubmitting ? "Sending..." : "Send Message"}
                 </Button>
               </form>
               <div className="mt-8 pt-8 border-t">
