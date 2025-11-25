@@ -1,7 +1,10 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Only initialize Resend if API key is available
+const resend = process.env.RESEND_API_KEY 
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +16,25 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
+      );
+    }
+
+    // Check if Resend is configured
+    if (!resend) {
+      // Log the form submission for now (you can view this in server logs)
+      console.log("Contact form submission (Resend not configured):", {
+        name,
+        email,
+        subject,
+        message,
+      });
+      
+      return NextResponse.json(
+        { 
+          error: "Email service is not configured. Please contact me directly at tomcouto.cs@gmail.com",
+          message: "Form submission logged. Email service will be available soon."
+        },
+        { status: 503 }
       );
     }
 
