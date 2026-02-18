@@ -1,15 +1,58 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { AnimatedSection } from "@/components/AnimatedSection";
+import { useScrollSpy } from "@/hooks/useScrollSpy";
+import { getProjectImage } from "@/lib/projectImages";
 import { Mail, Code, Database, Cloud, Smartphone, Globe, Github, Linkedin, Send, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
 
+function NavLink({ href, children, isActive }: { href: string; children: React.ReactNode; isActive?: boolean }) {
+  return (
+    <a
+      href={href}
+      className={`text-sm font-medium transition-colors ${
+        isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
+      }`}
+    >
+      {children}
+    </a>
+  );
+}
+
+function ProjectPreviewImage({ src, alt, url }: { src: string; alt: string; url: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="flex aspect-video w-full items-center justify-center bg-muted">
+        <Github className="h-12 w-12 text-muted-foreground" />
+      </a>
+    );
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video w-full bg-muted">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="object-cover transition-opacity hover:opacity-90"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        onError={() => setHasError(true)}
+      />
+    </a>
+  );
+}
+
 export default function Home() {
+  const activeSection = useScrollSpy();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,10 +70,32 @@ export default function Home() {
   useEffect(() => {
     const fetchRepos = async () => {
       try {
-        const response = await fetch("/api/github");
+        const apiUrl = typeof window !== "undefined" ? `${window.location.origin}/api/github` : "/api/github";
+        const response = await fetch(apiUrl);
         if (response.ok) {
           const data = await response.json();
           setRepos(data);
+        } else if (response.status === 404) {
+          // Fallback: fetch directly from GitHub when API route isn't available (e.g. static export)
+          const username = "tomcoutocs";
+          const repoNames = ["zarcfit", "parrot", "PromptDaily"];
+          const repoPromises = repoNames.map((name) =>
+            fetch(`https://api.github.com/repos/${username}/${name}`, {
+              headers: { Accept: "application/vnd.github.v3+json" },
+            }).then((r) => (r.ok ? r.json() : null))
+          );
+          const results = await Promise.all(repoPromises);
+          const formatted = results
+            .filter(Boolean)
+            .map((repo: { id: number; name: string; description: string | null; html_url: string; language: string | null; topics: string[] }) => ({
+              id: repo.id,
+              name: repo.name,
+              description: repo.description || "No description available",
+              url: repo.html_url,
+              language: repo.language,
+              topics: repo.topics || [],
+            }));
+          setRepos(formatted);
         } else {
           setReposError(true);
         }
@@ -90,29 +155,30 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center space-x-2">
             <Code className="h-6 w-6" />
             <span className="text-xl font-bold">Tom Couto</span>
           </div>
-          <div className="flex items-center space-x-4">
-            <a href="#services" className="text-sm font-medium hover:text-primary transition-colors">
+          <div className="flex items-center space-x-6">
+            <NavLink href="#services" isActive={activeSection === "services"}>
               Services
-            </a>
-            <a href="#projects" className="text-sm font-medium hover:text-primary transition-colors">
+            </NavLink>
+            <NavLink href="#projects" isActive={activeSection === "projects"}>
               Projects
-            </a>
-            <a href="#contact" className="text-sm font-medium hover:text-primary transition-colors">
+            </NavLink>
+            <NavLink href="#contact" isActive={activeSection === "contact"}>
               Contact
-            </a>
+            </NavLink>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="container px-4 py-24 md:py-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+      <section className="container mx-auto px-4 py-24 md:py-32">
+        <AnimatedSection>
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
             Fullstack Development
             <br />
             <span className="text-primary">& Software Consulting</span>
@@ -129,19 +195,23 @@ export default function Home() {
               <a href="#projects">View Work</a>
             </Button>
           </div>
-        </div>
+          </div>
+        </AnimatedSection>
       </section>
 
       {/* Services Section */}
-      <section id="services" className="container px-4 py-24">
+      <section id="services" className="container mx-auto px-4 py-24">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">What I Provide</h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Comprehensive development and consulting services tailored to your needs
-            </p>
-          </div>
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">What I Provide</h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                Comprehensive development and consulting services tailored to your needs
+              </p>
+            </div>
+          </AnimatedSection>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <AnimatedSection delay={100}>
             <Card>
               <CardHeader>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -160,7 +230,9 @@ export default function Home() {
                 </ul>
               </CardContent>
             </Card>
+            </AnimatedSection>
 
+            <AnimatedSection delay={150}>
             <Card>
               <CardHeader>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -179,7 +251,9 @@ export default function Home() {
                 </ul>
               </CardContent>
             </Card>
+            </AnimatedSection>
 
+            <AnimatedSection delay={200}>
             <Card>
               <CardHeader>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -198,7 +272,9 @@ export default function Home() {
                 </ul>
               </CardContent>
             </Card>
+            </AnimatedSection>
 
+            <AnimatedSection delay={250}>
             <Card>
               <CardHeader>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -217,7 +293,9 @@ export default function Home() {
                 </ul>
               </CardContent>
             </Card>
+            </AnimatedSection>
 
+            <AnimatedSection delay={300}>
             <Card>
               <CardHeader>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -236,7 +314,9 @@ export default function Home() {
                 </ul>
               </CardContent>
             </Card>
+            </AnimatedSection>
 
+            <AnimatedSection delay={350}>
             <Card>
               <CardHeader>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -255,6 +335,7 @@ export default function Home() {
                 </ul>
               </CardContent>
             </Card>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -262,14 +343,16 @@ export default function Home() {
       <Separator />
 
       {/* Projects Section */}
-      <section id="projects" className="container px-4 py-24">
+      <section id="projects" className="container mx-auto px-4 py-24">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Featured Projects</h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              A selection of my recent work and projects
-            </p>
-          </div>
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Featured Projects</h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                A selection of my recent work and projects
+              </p>
+            </div>
+          </AnimatedSection>
           {reposLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -286,8 +369,16 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {repos.map((repo) => (
-                <Card key={repo.id} className="flex flex-col">
+              {repos.map((repo, index) => (
+                <AnimatedSection key={repo.id} delay={index * 80}>
+                <Card className="flex flex-col overflow-hidden">
+                  {getProjectImage(repo.name) && (
+                    <ProjectPreviewImage
+                      src={getProjectImage(repo.name)!}
+                      alt={`${repo.name} preview`}
+                      url={repo.url}
+                    />
+                  )}
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -325,6 +416,7 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
+                </AnimatedSection>
               ))}
             </div>
           )}
@@ -334,14 +426,16 @@ export default function Home() {
       <Separator />
 
       {/* Contact Section */}
-      <section id="contact" className="container px-4 py-24">
+      <section id="contact" className="container mx-auto px-4 py-24">
         <div className="mx-auto max-w-2xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Get In Touch</h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Let's discuss your next project or how I can help your business
-            </p>
-          </div>
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Get In Touch</h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                Let's discuss your next project or how I can help your business
+              </p>
+            </div>
+          </AnimatedSection>
           <Card>
             <CardHeader>
               <CardTitle>Contact Me</CardTitle>
@@ -462,7 +556,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-8">
-        <div className="container px-4">
+        <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} Tom Couto. All rights reserved.
