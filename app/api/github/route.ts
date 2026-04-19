@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { FEATURED_REPO_NAMES } from "@/lib/featuredRepos";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const username = "tomcoutocs";
-    const repoNames = ["zarcfit", "parrot", "PromptDaily"];
+    const repoNames = [...FEATURED_REPO_NAMES];
 
     // Fetch all specified repositories in parallel
     const repoPromises = repoNames.map((repoName) =>
